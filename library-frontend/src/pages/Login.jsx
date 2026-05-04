@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { login } from "../services/auth";
+import { redirectByRole } from "../utils/auth";
 import { useNavigate, Link } from "react-router-dom";
 
 export default function Login() {
@@ -12,11 +13,19 @@ export default function Login() {
 
    const handleSubmit = async (e) => {
       e.preventDefault();
+
       try {
          const res = await login(form);
-         localStorage.setItem("token", res.data.data.token);
-         localStorage.setItem("user", JSON.stringify(res.data.data.user));
-         navigate("/dashboard");
+
+         const { token, user } = res.data.data;
+
+         // lưu
+         localStorage.setItem("token", token);
+         localStorage.setItem("user", JSON.stringify(user));
+
+         // redirect bằng helper
+         navigate(redirectByRole(user.role));
+ 
       } catch (err) {
          alert(err.response?.data?.message);
       }

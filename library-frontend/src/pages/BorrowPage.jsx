@@ -7,7 +7,8 @@ export default function BorrowPage() {
   const [openModal, setOpenModal] = useState(false);
   const [error, setError] = useState("");
 
-  // 🔥 NEW STATE
+  const [search, setSearch] = useState(""); // 🔥 NEW
+
   const [expandedId, setExpandedId] = useState(null);
   const [details, setDetails] = useState([]);
 
@@ -30,10 +31,17 @@ export default function BorrowPage() {
     fetchBorrows();
   }, []);
 
+  // ================= FILTER SEARCH =================
+  const filteredBorrows = borrows.filter((b) =>
+    b.code?.toLowerCase().includes(search.toLowerCase())
+  );
+
   // ================= FETCH DETAIL =================
   const fetchBorrowDetail = async (id) => {
     try {
-      const res = await axios.get(`http://localhost:3000/api/borrow/borrow-details/${id}`);
+      const res = await axios.get(
+        `http://localhost:3000/api/borrow/borrow-details/${id}`
+      );
       setDetails(res.data || []);
     } catch (err) {
       console.error(err);
@@ -91,10 +99,7 @@ export default function BorrowPage() {
       });
 
       fetchBorrows();
-
     } catch (err) {
-      console.error(err);
-
       const message =
         err.response?.data?.message || err.message || "Lỗi hệ thống";
 
@@ -115,21 +120,52 @@ export default function BorrowPage() {
       <div className="bg-white p-6 rounded-xl shadow">
 
         {/* HEADER */}
-        <div className="flex justify-between mb-4">
-          <h2 className="text-xl font-bold">Quản lý mượn sách</h2>
+        <div className="flex items-center mb-4">
 
-          <button
-            onClick={() => setOpenModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded"
-          >
-            + Mượn sách
-          </button>
+          {/* TITLE */}
+          <h2 className="text-xl font-bold">
+            Quản lý mượn sách
+          </h2>
+
+          {/* RIGHT */}
+          <div className="flex items-center gap-3 ml-auto">
+
+            {/* SEARCH */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Tìm theo mã..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="border px-3 py-2 rounded w-64 pr-8"
+              />
+
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className="absolute right-2 top-2 text-gray-500"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* BUTTON */}
+            <button
+              onClick={() => setOpenModal(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded"
+            >
+              + Mượn sách
+            </button>
+
+          </div>
         </div>
 
         {/* TABLE */}
         <table className="w-full border border-gray-200">
           <thead className="bg-gray-100 text-center">
             <tr>
+              <th>Code</th>
               <th>Reader</th>
               <th>Ngày mượn</th>
               <th>Hạn trả</th>
@@ -140,74 +176,79 @@ export default function BorrowPage() {
           </thead>
 
           <tbody>
-            {borrows.map((b) => (
-              <>
-                {/* MAIN ROW */}
-                <tr
-                  key={b._id}
-                  className="text-center hover:bg-gray-50 cursor-pointer"
-                  onClick={() => {
-                    if (expandedId === b._id) {
-                      setExpandedId(null);
-                    } else {
-                      setExpandedId(b._id);
-                      fetchBorrowDetail(b._id);
-                    }
-                  }}
-                >
-                  <td>{b.user_id?.name}</td>
-                  <td>{new Date(b.borrow_date).toLocaleDateString()}</td>
-                  <td>{new Date(b.due_date).toLocaleDateString()}</td>
-                  <td>{b.total_quantity}</td>
-                  <td>
-                    <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded">
-                      {b.status}
-                    </span>
-                  </td>
-                  <td>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation(); // 🔥 tránh click row
-                        handleDelete(b._id);
-                      }}
-                      className="bg-red-500 text-white px-2 py-1 rounded"
-                    >
-                      Xóa
-                    </button>
-                  </td>
-                </tr>
-
-                {/* EXPAND ROW */}
-                {expandedId === b._id && (
-                  <tr>
-                    <td colSpan="6" className="bg-gray-50 p-4 text-left">
-
-                      <div className="font-semibold mb-2">
-                        📚 Chi tiết sách
-                      </div>
-
-                      {details.length === 0 ? (
-                        <div className="text-gray-500">
-                          Không có dữ liệu
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          {details.map((d) => (
-                            <div
-                              key={d._id}
-                              className="flex justify-between border-b pb-1"
-                            >
-                              <span>{d.book_id?.title}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
+            {filteredBorrows.length === 0 ? (
+              <tr>
+                <td colSpan="7" className="text-center p-6 text-gray-500">
+                  🔍 Không tìm thấy kết quả
+                </td>
+              </tr>
+            ) : (
+              filteredBorrows.map((b) => (
+                <>
+                  <tr
+                    key={b._id}
+                    className="text-center hover:bg-gray-50 cursor-pointer"
+                    onClick={() => {
+                      if (expandedId === b._id) {
+                        setExpandedId(null);
+                      } else {
+                        setExpandedId(b._id);
+                        fetchBorrowDetail(b._id);
+                      }
+                    }}
+                  >
+                    <td>{b.code}</td>
+                    <td>{b.user_id?.name}</td>
+                    <td>{new Date(b.borrow_date).toLocaleDateString()}</td>
+                    <td>{new Date(b.due_date).toLocaleDateString()}</td>
+                    <td>{b.total_quantity}</td>
+                    <td>
+                      <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded">
+                        {b.status}
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(b._id);
+                        }}
+                        className="bg-red-500 text-white px-2 py-1 rounded"
+                      >
+                        Xóa
+                      </button>
                     </td>
                   </tr>
-                )}
-              </>
-            ))}
+
+                  {expandedId === b._id && (
+                    <tr>
+                      <td colSpan="7" className="bg-gray-50 p-4 text-left">
+                        <div className="font-semibold mb-2">
+                          📚 Chi tiết sách
+                        </div>
+
+                        {details.length === 0 ? (
+                          <div className="text-gray-500">
+                            Không có dữ liệu
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {details.map((d) => (
+                              <div
+                                key={d._id}
+                                className="flex justify-between border-b pb-1"
+                              >
+                                <span>{d.book_id?.title}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </>
+              ))
+            )}
           </tbody>
         </table>
 
@@ -226,7 +267,6 @@ export default function BorrowPage() {
                 </div>
               )}
 
-              {/* USER INPUT */}
               <input
                 type="text"
                 value={form.user.keyword}
@@ -240,7 +280,6 @@ export default function BorrowPage() {
                 className="w-full border p-2 mb-3"
               />
 
-              {/* BOOK SEARCH */}
               {form.books.map((item, index) => (
                 <div key={index} className="relative mb-2">
 
@@ -281,18 +320,6 @@ export default function BorrowPage() {
                       ))}
                     </div>
                   )}
-
-                  <button
-                    onClick={() =>
-                      setForm({
-                        ...form,
-                        books: form.books.filter((_, i) => i !== index)
-                      })
-                    }
-                    className="text-red-500 text-sm mt-1"
-                  >
-                    Xóa
-                  </button>
                 </div>
               ))}
 
@@ -310,10 +337,6 @@ export default function BorrowPage() {
               >
                 + Thêm sách
               </button>
-
-              <div className="text-sm text-gray-600 mt-2">
-                Đã chọn: {form.books.filter((b) => b.id).length} sách
-              </div>
 
               <div className="flex justify-end gap-2 mt-4">
                 <button

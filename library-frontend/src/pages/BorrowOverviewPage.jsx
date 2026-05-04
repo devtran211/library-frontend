@@ -4,9 +4,9 @@ import Layout from "../components/Layout";
 
 export default function BorrowListPage() {
   const [borrows, setBorrows] = useState([]);
+  const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
 
-  // 🔥 NEW
   const [expandedId, setExpandedId] = useState(null);
   const [details, setDetails] = useState([]);
 
@@ -26,7 +26,6 @@ export default function BorrowListPage() {
         `http://localhost:3000/api/borrow/borrow-details/${id}`
       );
       setDetails(res.data);
-      console.log(res.data);
     } catch (err) {
       console.error(err);
     }
@@ -37,39 +36,71 @@ export default function BorrowListPage() {
   }, []);
 
   // ================= FILTER =================
-  const filteredBorrows =
-    statusFilter === "All"
-      ? borrows
-      : borrows.filter((b) => b.status === statusFilter);
+  const filteredBorrows = borrows
+    .filter((b) =>
+      statusFilter === "All" ? true : b.status === statusFilter
+    )
+    .filter((b) =>
+      b.code?.toLowerCase().includes(search.toLowerCase())
+    );
 
   return (
     <Layout>
       <div className="bg-white p-6 rounded-xl shadow">
 
         {/* HEADER */}
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center mb-4">
+
+          {/* TITLE */}
           <h2 className="text-xl font-bold">
             Danh sách mượn sách
           </h2>
 
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="border p-2 rounded"
-          >
-            <option value="All">Tất cả</option>
-            <option value="Borrowing">Borrowing</option>
-            <option value="Returned">Returned</option>
-            <option value="Insufficient payment">
-              Insufficient payment
-            </option>
-          </select>
+          {/* RIGHT SIDE */}
+          <div className="flex items-center gap-3 ml-auto">
+
+            {/* SEARCH */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Tìm theo mã phiếu..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="border px-3 py-2 rounded w-64 pr-8"
+              />
+
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className="absolute right-2 top-2 text-gray-500"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* FILTER */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="border p-2 rounded"
+            >
+              <option value="All">Tất cả</option>
+              <option value="Borrowing">Borrowing</option>
+              <option value="Returned">Returned</option>
+              <option value="Insufficient payment">
+                Insufficient payment
+              </option>
+            </select>
+
+          </div>
         </div>
 
         {/* TABLE */}
         <table className="w-full border border-gray-200">
           <thead className="bg-gray-100 text-center">
             <tr>
+              <th className="p-2">Code</th>
               <th className="p-2">Reader</th>
               <th className="p-2">Ngày mượn</th>
               <th className="p-2">Hạn trả</th>
@@ -81,8 +112,8 @@ export default function BorrowListPage() {
           <tbody>
             {filteredBorrows.length === 0 ? (
               <tr>
-                <td colSpan="5" className="text-center p-4 text-gray-500">
-                  Không có dữ liệu
+                <td colSpan="6" className="text-center p-6 text-gray-500">
+                  🔍 Không tìm thấy kết quả
                 </td>
               </tr>
             ) : (
@@ -101,6 +132,7 @@ export default function BorrowListPage() {
                       }
                     }}
                   >
+                    <td>{b.code}</td>
                     <td>{b.user_id?.name}</td>
 
                     <td>
@@ -131,7 +163,7 @@ export default function BorrowListPage() {
                   {/* EXPAND DETAIL */}
                   {expandedId === b._id && (
                     <tr>
-                      <td colSpan="5" className="bg-gray-50 p-4 text-left">
+                      <td colSpan="6" className="bg-gray-50 p-4 text-left">
 
                         <div className="font-semibold mb-2">
                           📚 Chi tiết sách
@@ -151,68 +183,65 @@ export default function BorrowListPage() {
                                 }`}
                               >
 
-                              {/* LEFT */}
-                              <div className="flex items-center gap-3">
+                                {/* LEFT */}
+                                <div className="flex items-center gap-3">
+                                  <img
+                                    src={d.book_id?.image_url}
+                                    alt=""
+                                    className="w-12 h-16 object-cover rounded"
+                                  />
 
-                                <img
-                                  src={d.book_id?.image_url}
-                                  alt=""
-                                  className="w-12 h-16 object-cover rounded"
-                                />
-
-                                <div>
-                                  <div className="font-medium">
-                                    {d.book_id?.title}
-                                  </div>
-
-                                  <div className="text-sm text-gray-500">
-                                    {d.book_id?.author}
-                                  </div>
-
-                                  {/* 🔥 BOOK CONDITION */}
-                                  {d.book_condition && (
-                                    <div className="text-xs text-orange-600 mt-1">
-                                      Tình trạng: {d.book_condition}
+                                  <div>
+                                    <div className="font-medium">
+                                      {d.book_id?.title}
                                     </div>
-                                  )}
 
-                                  {d.book_condition && (
-                                    <div className="text-xs text-blue-600 mt-1">
-                                      Ngày trả: {new Date(d.book_return_date_details).toLocaleDateString()}
+                                    <div className="text-sm text-gray-500">
+                                      {d.book_id?.author}
+                                    </div>
+
+                                    {d.book_condition && (
+                                      <div className="text-xs text-orange-600 mt-1">
+                                        Tình trạng: {d.book_condition}
+                                      </div>
+                                    )}
+
+                                    {d.book_return_date_details && (
+                                      <div className="text-xs text-blue-600 mt-1">
+                                        Ngày trả:{" "}
+                                        {new Date(
+                                          d.book_return_date_details
+                                        ).toLocaleDateString()}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* RIGHT */}
+                                <div className="text-right space-y-1">
+                                  <div
+                                    className={`text-sm font-medium ${
+                                      d.book_return_date_details
+                                        ? "text-green-600"
+                                        : "text-yellow-600"
+                                    }`}
+                                  >
+                                    {d.book_return_date_details
+                                      ? "Đã trả"
+                                      : "Chưa trả"}
+                                  </div>
+
+                                  {d.fine && (
+                                    <div className="text-red-600 text-sm font-semibold">
+                                      Phạt: {d.fine.amount}đ
                                     </div>
                                   )}
                                 </div>
 
                               </div>
-
-                              {/* RIGHT */}
-                              <div className="text-right space-y-1">
-
-                                {/* RETURN STATUS */}
-                                <div
-                                  className={`text-sm font-medium ${
-                                    d.book_return_date_details
-                                      ? "text-green-600"
-                                      : "text-yellow-600"
-                                  }`}
-                                >
-                                  {d.book_return_date_details
-                                    ? "Đã trả"
-                                    : "Chưa trả"}
-                                </div>
-
-                                {/* 🔥 FINE */}
-                                {d.fine && (
-                                  <div className="text-red-600 text-sm font-semibold">
-                                    Phạt: {d.fine.amount}đ
-                                  </div>
-                                )}
-
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                            ))}
+                          </div>
+                        )}
 
                       </td>
                     </tr>

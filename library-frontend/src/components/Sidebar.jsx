@@ -40,7 +40,12 @@ export default function Sidebar() {
       label: "Quản lý người đọc",
       path: "/readers",
       roles: ["librarian"]
-    }
+    },
+    {
+      label: "Đơn đặt trước",
+      path: "/reservations",
+      roles: ["librarian"]
+    },
   ];
 
   return (
